@@ -1,0 +1,106 @@
+import "../../feature_test";
+import "../../str";
+
+// TODO: Perhaps emulate POSIX calls on Windows?
+export "posix_stat";
+export "posix_types";
+
+foreign import libc "system:c";
+foreign libc {
+	@(link_name = "getcwd")    getcwd    :: (buf: cstring, size: i64) -> cstring                            ---;
+	@(link_name = "closedir")  closedir  :: (handle: ^DIR) -> i32                                           ---;
+	@(link_name = "chdir")     chdir     :: (path: cstring) -> i32                                          ---;
+	@(link_name = "open")      open_cstr :: (path: cstring, access_mode: i32, perms: mode = 0666) -> Handle ---;
+	@(link_name = "close")     close     :: (handle: Handle) -> i32                                         ---;
+	@(link_name = "mkdir")     mkdir     :: (path: cstring, perms: mode) -> i32                             ---;
+	@(link_name = "readlink")  readlink  :: (path, out_buf: cstring, buf_size: feature_test.size_t) -> feature_test.ssize_t ---;
+	@(link_name = "realpath")  realpath  :: (in_buf, out_buf: cstring) -> cstring                           ---;
+}
+
+when ODIN_OS == "linux" {
+	foreign libc {
+		@(link_name = "readdir64")        readdir  :: (dir: ^DIR) -> ^dirent              ---;
+		@(link_name = "fstat64")          _fstat   :: (fd: i32, stat: ^Stat) -> int       ---;
+		@(link_name = "lstat64")          _lstat   :: (path: cstring, stat: ^Stat) -> int ---;
+		@(link_name = "stat64")           _stat    :: (path: cstring, stat: ^Stat) -> int ---;
+	}
+} else when ODIN_OS == "osx" {
+	foreign libc {
+		@(link_name = "readdir$INODE64")  readdir  :: (dir: ^DIR) -> ^dirent              ---;
+		@(link_name = "fstat$INODE64")    _fstat   :: (fd: i32, stat: ^Stat) -> int       ---;
+		@(link_name = "lstat$INODE64")    _lstat   :: (path: cstring, stat: ^Stat) -> int ---;
+		@(link_name = "stat$INODE64")     _stat    :: (path: cstring, stat: ^Stat) -> int ---;
+	}
+} else {
+	foreign libc {
+		@(link_name = "readdir")          readdir  :: (dir: ^DIR) -> ^dirent              ---;
+		@(link_name = "fstat")            _fstat   :: (fd: i32, stat: ^Stat) -> int       ---;
+		@(link_name = "lstat")            _lstat   :: (path: cstring, stat: ^Stat) -> int ---;
+		@(link_name = "stat"  )           _stat    :: (path: cstring, stat: ^Stat) -> int ---;
+	}
+}
+when ODIN_OS == "osx" {
+	foreign libc {
+		// NOTE(zachary): For backwards compat with 32-bit binaries,
+		//   Apple has an $INODE64 postfix on the `stat` family of functions.
+		@(link_name = "opendir$INODE64")  opendir  :: (path: cstring) -> ^DIR ---;
+	}
+} else {
+	foreign libc {
+		// NOTE(zachary): IOS/WatchOS/TVOS don't have this backwards-compatability.
+		@(link_name = "opendir")          opendir  :: (path: cstring) -> ^DIR ---;
+	}
+}
+
+Dirent_Type :: enum u8 {
+	DT_UNKNOWN  = 0,
+	DT_FIFO     = 1,
+	DT_CHR      = 2,
+	DT_DIR      = 4,
+	DT_BLK      = 6,
+	DT_REG      = 8,
+	DT_LNK      = 10,
+	DT_SOCK     = 12,
+	DT_WHT      = 14
+}
+
+when ODIN_OS == "linux" {
+	dirent :: struct {
+		inode: ino,
+		off: off,
+		reclen: u16,
+		kind: Dirent_Type,
+		name: [256]u8,
+	}
+} else {
+	dirent :: struct {
+		inode: ino,
+		seekoff: u64,
+		reclen: u16,
+		namlen: u16,
+		kind: Dirent_Type,
+		name: [256]u8,
+	}
+}
+
+DIR :: rawptr;
+
+fstat :: inline (fd: i32) -> (Stat, int) {
+	s: Stat;
+	ret_int := _fstat(fd, &s);
+	return s, int(ret_int);
+}
+lstat :: inline (path: string) -> (Stat, int) {
+	s: Stat;
+	cstr := str.new_cstring(path);
+	defer free(cstr);
+	ret_int := _lstat(cstr, &s);
+	return s, int(ret_int);
+}
+stat :: inline (path: string) -> (Stat, int) {
+	s: Stat;
+	cstr := str.new_cstring(path);
+	defer free(cstr);
+	ret_int := _stat(cstr, &s);
+	return s, int(ret_int);
+}

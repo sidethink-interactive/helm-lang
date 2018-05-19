@@ -1,0 +1,76 @@
+import "std:os"
+import "std:fmt"
+import "std:str"
+import "std:fs"
+
+
+Build_Kind :: enum {
+	RELEASE,
+	DEBUG,
+	DEVELOPMENT
+}
+
+Compiler_State :: struct {
+	build_kind: Build_Kind = Build_Kind.DEBUG,
+	got_main_file: bool = false,
+	main_file: string,
+}
+
+main :: () {
+
+	args := os.args[1..];
+	arg: string = ---;
+
+	state: Compiler_State;
+
+	using state;
+
+	for i := 0; i < len(args); i+=1 {
+
+		arg = args[i];
+		switch arg {
+			case "-v": fmt.println("Helm programming language compiler version 0.1"); return;
+			case "-b": fallthrough;
+			case "--build":
+				i+=1;
+				if i >= len(args) {
+					fmt.printp("Didn't pass a build type to --build/-b; assuming {}\n\n", build_kind);
+					break;
+				}
+				arg = args[i];
+
+				if arg == "final" || arg == "r" || arg == "release" {
+
+					build_kind = Build_Kind.RELEASE;
+
+				} else if arg == "testing" || arg == "d" || arg == "debug" {
+
+					build_kind = Build_Kind.DEBUG;
+
+				} else if arg == "dev" || arg == "development" {
+
+					build_kind = Build_Kind.DEVELOPMENT;
+
+				} else {
+
+					fmt.printp("Didn't pass a valid build type to --build/-b. ({})\nValid types are: \n\tr/release\n\td/debug\n\tdev/development\nassuming {}\n\n", args[i], build_kind);
+				}
+			case:
+				if(fs.is_file(arg)) {
+					if got_main_file {
+						fmt.printp("Attempted to set another main file ({}) when there already is one ({}).\nIgnoring new file...\n", arg, main_file);
+						break;
+					}
+					fmt.println("Got main file ", arg);
+					main_file = arg;
+					got_main_file = true;
+				} else {
+					fmt.printp("Unknown argument or invalid file '{}'\n", arg);
+				}
+		}
+	}
+
+	fmt.printp("Starting {} build of \"{}\".\n", build_kind, main_file);
+
+	
+}

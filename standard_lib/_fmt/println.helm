@@ -1,0 +1,54 @@
+import "std:os"
+import "std:math"
+using import "util"
+
+
+
+/*
+	PRINTLN GUIDE
+	---------------
+
+	Writes everything passed to it.
+	Terminates with a new line. Use print procedures if you don't want that.
+*/
+
+// fprint* procedures write to a file descriptor
+fprintln :: (fd: os.Handle, args: ...any) -> int {
+	data: [BUFFER_SIZE]byte;
+	buf := string_buffer_from_slice(data[..]);
+	res := sbprintln(&buf, ...args);
+	os.write_string(fd, res);
+	return len(res);
+}
+
+// aprint* procedures return a string that was allocated with the current context
+// They must be freed accordingly
+aprintln :: (args: ...any) -> string {
+	buf := String_Buffer(make([dynamic]byte));
+	sbprintln(&buf, ...args);
+	return to_string(buf);
+}
+
+// bprint* procedures return a string using a buffer from an array
+bprintln :: (buf: []byte, args: ...any) -> string {
+	sb := string_buffer_from_slice(buf[0..len(buf)]);
+	return sbprintln(&sb, ...args);
+}
+
+// print* procedures return the number of bytes written
+println     :: (args: ...any) -> int do return fprintln(os.stdout, ...args);
+println_err :: (args: ...any) -> int do return fprintln(os.stderr, ...args);
+
+
+sbprintln :: (buf: ^String_Buffer, args: ...any) -> string {
+	fi: Fmt_Info;
+	fi.buf = buf;
+
+	for _, i in args {
+		if i > 0 do write_byte(buf, ' ');
+
+		fmt_value(&fi, args[i], 'v');
+	}
+	write_byte(buf, '\n');
+	return to_string(buf^);
+}

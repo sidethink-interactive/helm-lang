@@ -1,0 +1,14 @@
+export "gen/token_kinds"
+
+File :: struct {
+	path: string,
+	lines: [dynamic]string,
+	tokens: [dynamic]Token,
+}
+
+Token :: struct {
+	kind: Token_Kind,
+	text: string,
+	file: ^File,
+	line, col: u32,
+}

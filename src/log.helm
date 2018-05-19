@@ -1,0 +1,28 @@
+using import "types"
+import "std:fmt"
+
+// TODO(zachary): Win32 console output coloring
+
+ANSI_RED :: "\033[1;31m";
+ANSI_ORN :: "\033[1;33m";
+ANSI_RESET :: "\033[m";
+
+_digits :: inline (n: u32, d: int = 1) -> int do if n >= 10 do return _digits(n / 10, d + 1); else do return d;
+_log_line :: inline (file: ^File, line: u32) do fmt.printf("\033[100m%*d \033[m %s", _digits(line), n, file.lines[line-1]);
+
+show_context :: inline (file: ^File, line, col: u32) {
+
+	if line > 1 do _log_line(file, line - 1);
+	_log_line(file, line);
+	fmt.printf("%s%*c%s\n", ANSI_ORN, _digits(line)+2+col, '^', ANSI_RESET);
+}
+
+error :: (tok: Token_Kind, err_string: string) {
+	fmt.printp("\033[1m{}:{}:{}: {}error:{} {}\033[21m\n", tok.file.path, tok.line, tok.col, ANSI_RED, ANSI_RESET, err_string);
+	show_context(tok.file, tok.line, tok.col);
+}
+
+warn :: (tok: Token_Kind, err_string: string) {
+	fmt.printp("\033[1m{}:{}:{}: {}warning:{} {}\033[21m\n", tok.file.path, tok.line, tok.col, ANSI_ORN, ANSI_RESET, err_string);
+	show_context(tok.file, tok.line, tok.col);
+}

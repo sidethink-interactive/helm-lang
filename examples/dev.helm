@@ -1,0 +1,9 @@
+import std:io;
+
+/**
+	This function runs when the program starts.
+*/
+// The above comment is to test documentation capturing.
+main :: () {
+	io.writeln("test");
+}

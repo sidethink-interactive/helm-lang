@@ -1,0 +1,59 @@
+import "std:os"
+import "std:math"
+import "std:types"
+using import "util"
+
+
+
+/*
+	PRINT GUIDE
+	---------------
+
+	Writes everything passed to it.
+	Does *not* terminate with a new line. Use println procedures for that.
+*/
+
+// fprint* procedures write to a file descriptor
+fprint :: (fd: os.Handle, args: ...any) -> int {
+	data: [BUFFER_SIZE]byte;
+	buf := string_buffer_from_slice(data[..]);
+	res := sbprint(&buf, ...args);
+	os.write_string(fd, res);
+	return len(res);
+}
+
+// aprint* procedures return a string that was allocated with the current context
+// They must be freed accordingly
+aprint :: (args: ...any) -> string {
+	buf := String_Buffer(make([dynamic]byte));
+	sbprint(&buf, ...args);
+	return to_string(buf);
+}
+
+// bprint* procedures return a string using a buffer from an array
+bprint :: (buf: []byte, args: ...any) -> string {
+	sb := string_buffer_from_slice(buf[0..len(buf)]);
+	return sbprint(&sb, ...args);
+}
+
+// print* procedures return the number of bytes written
+print       :: (args: ...any) -> int do return fprint(os.stdout, ...args);
+print_err   :: (args: ...any) -> int do return fprint(os.stderr, ...args);
+
+
+sbprint :: (buf: ^String_Buffer, args: ...any) -> string {
+	fi: Fmt_Info;
+	prev_string := false;
+
+	fi.buf = buf;
+
+	for arg, i in args {
+		is_string := arg != nil && types.is_string(type_info_of(arg.typeid));
+		if i > 0 && !is_string && !prev_string {
+			write_byte(buf, ' ');
+		}
+		fmt_value(&fi, args[i], 'v');
+		prev_string = is_string;
+	}
+	return to_string(buf^);
+}

@@ -1,0 +1,14 @@
+
+# Generated code
+src/gen/
+
+# Compiler
+helm
+helm.dSYM
+
+# Temporary files
+*.ll
+*.bc
+
+# Examples
+examples_bin

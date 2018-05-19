@@ -1,0 +1,174 @@
+import "std:os"
+import "std:math"
+import "std:utf8"
+using import "util"
+
+
+
+/*
+	PRINTF GUIDE
+	---------------
+
+	Formats output using the standard `printf` format.
+
+	TODO(zachary): Better documentation.
+*/
+
+// fprint* procedures write to a file descriptor
+fprintf :: proc(fd: os.Handle, fmt: string, args: ...any) -> int {
+	data: [BUFFER_SIZE]byte;
+	buf := string_buffer_from_slice(data[..]);
+	res := sbprintf(&buf, fmt, ...args);
+	os.write_string(fd, res);
+	return len(res);
+}
+
+// aprint* procedures return a string that was allocated with the current context
+// They must be freed accordingly
+aprintf :: proc(fmt: string, args: ...any) -> string {
+	buf := String_Buffer(make([dynamic]byte));
+	sbprintf(&buf, fmt, ...args);
+	return to_string(buf);
+}
+
+// bprint* procedures return a string using a buffer from an array
+bprintf :: proc(buf: []byte, fmt: string, args: ...any) -> string {
+	sb := string_buffer_from_slice(buf[0..len(buf)]);
+	return sbprintf(&sb, fmt, ...args);
+}
+
+// print* procedures return the number of bytes written
+printf      :: (fmt: string, args: ...any) -> int do return fprintf(os.stdout, fmt, ...args);
+printf_err  :: (fmt: string, args: ...any) -> int do return fprintf(os.stderr, fmt, ...args);
+
+
+sbprintf :: (b: ^String_Buffer, fmt: string, args: ...any) -> string {
+	fi: Fmt_Info;
+	arg_index: int = 0;
+	end := len(fmt);
+	was_prev_index := false;
+
+
+	loop: for i := 0; i < end; /**/ {
+		fi = Fmt_Info{buf = b, good_arg_index = true};
+
+		prev_i := i;
+		for i < end && fmt[i] != '%' {
+			i += 1;
+		}
+		if i > prev_i {
+			write_string(b, fmt[prev_i..i]);
+		}
+		if i >= end {
+			break loop;
+		}
+
+		// Process a "verb"
+		i += 1;
+
+		prefix_loop: for ; i < end; i += 1 {
+			switch fmt[i] {
+			case '+':
+				fi.plus = true;
+			case '-':
+				fi.minus = true;
+				fi.zero = false;
+			case ' ':
+				fi.space = true;
+			case '#':
+				fi.hash = true;
+			case '0':
+				fi.zero = !fi.minus;
+			case:
+				break prefix_loop;
+			}
+		}
+
+		arg_index, i, was_prev_index = fmt_arg_number(&fi, arg_index, fmt, i, len(args));
+
+		// Width
+		if i < end && fmt[i] == '*' {
+			i += 1;
+			fi.width, arg_index, fi.width_set = int_from_arg(args, arg_index);
+			if !fi.width_set {
+				write_string(b, "%!(BAD WIDTH)");
+			}
+
+			if fi.width < 0 {
+				fi.width = -fi.width;
+				fi.minus = true;
+				fi.zero  = false;
+			}
+			was_prev_index = false;
+		} else {
+			fi.width, i, fi.width_set = fmt_parse_int(fmt, i);
+			if was_prev_index && fi.width_set { // %[6]2d
+				fi.good_arg_index = false;
+			}
+		}
+
+		// Precision
+		if i < end && fmt[i] == '.' {
+			i += 1;
+			if was_prev_index { // %[6].2d
+				fi.good_arg_index = false;
+			}
+			if i < end && fmt[i] == '*' {
+				arg_index, i, was_prev_index = fmt_arg_number(&fi, arg_index, fmt, i, len(args));
+				i += 1;
+				fi.prec, arg_index, fi.prec_set = int_from_arg(args, arg_index);
+				if fi.prec < 0 {
+					fi.prec = 0;
+					fi.prec_set = false;
+				}
+				if !fi.prec_set {
+					write_string(fi.buf, "%!(BAD PRECISION)");
+				}
+				was_prev_index = false;
+			} else {
+				fi.prec, i, fi.prec_set = fmt_parse_int(fmt, i);
+				if !fi.prec_set {
+					// fi.prec_set = true;
+					// fi.prec = 0;
+				}
+			}
+		}
+
+		if !was_prev_index {
+			arg_index, i, was_prev_index = fmt_arg_number(&fi, arg_index, fmt, i, len(args));
+		}
+
+		if i >= end {
+			write_string(b, "%!(NO VERB)");
+			break loop;
+		}
+
+		verb, w := utf8.decode_rune_from_string(fmt[i..]);
+		i += w;
+
+		switch {
+		case verb == '%':
+			write_byte(b, '%');
+		case !fi.good_arg_index:
+			write_string(b, "%!(BAD ARGUMENT NUMBER)");
+		case arg_index >= len(args):
+			write_string(b, "%!(MISSING ARGUMENT)");
+		case:
+			fmt_arg(&fi, args[arg_index], verb);
+			arg_index += 1;
+		}
+	}
+
+	if !fi.reordered && arg_index < len(args) {
+		write_string(b, "%!(EXTRA ");
+		for arg, index in args[arg_index..] {
+			if index > 0 do write_string(b, ", ");
+
+			if arg == nil do write_string(b, "<nil>");
+			else          do fmt_arg(&fi, args[index], 'v');
+		}
+		write_string(b, ")");
+	}
+
+	return to_string(b^);
+}

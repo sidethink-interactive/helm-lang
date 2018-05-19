@@ -1,0 +1,83 @@
+
+import "str"
+
+
+Duration :: i64;
+
+NANOSECOND   :: 1;
+MICCROSECOND :: 1000 * NANOSECOND;
+MILLISECOND  :: 1000 * MICCROSECOND;
+SECOND       :: 1000 * MILLISECOND;
+MINUTE       :: 60 * SECOND;
+HOUR         :: 60 * MINUTE;
+
+DURATION_NAME_MAP := map[string]i64 {
+
+}
+
+
+_parse_f64 :: proc(duration: string, i: int) -> time: f64, new_i: int, err: bool {
+	
+	if !str.is_digit(duration[i]) do return 0, 0, true;
+
+	start := i;
+	has_decimal, has_exponent := false, false;
+	c: char = ---;
+
+	for ; i < len(duration); i += 1 {
+		
+		c = duration[i];
+		
+		if str.is_digit(c) || c == '_' do continue;
+		else if (c == 'e' || c == 'E') && !has_exponent {
+			has_exponent = true;
+			continue;
+		} else if c == '.' || !has_decimal {
+			has_decimal = true;
+			continue;
+		}
+		break;
+	}
+
+	return i, str.parse_f64(duration[start .. i]), false;
+}
+
+// TODO(zachary): Create this.
+/*
+parse_duration :: proc(duration: string) -> Duration, bool {
+
+	d: Duration;
+	negative := false;
+
+	if duration[0] == "+" {
+
+		duration = duration[1..len(duration)];
+
+	} else if duration[0] == "-" {
+
+		negative = true;
+		duration = duration[1..len(duration)];
+	}
+
+	if duration == "0" do return 0, false;
+	if duration == "" do return 0, true;
+
+
+	for i := 0; i < len(duration); i+=1 {
+		// Main loop - this loops through each entry in the string.
+		// I.e. for "-1.5h10m", this would loop through "1.5h", "10m" given "1.5h10m"
+
+		for ; i < len(duration); i+=1 {
+			if new_i, number, err := parse_f64(duration, i); err == false {
+
+			} else {
+				return 0, err;
+			}
+		}
+	}
+}
+*/
+
+since :: proc(time: Time) {
+
+}

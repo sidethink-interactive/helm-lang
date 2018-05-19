@@ -1,0 +1,107 @@
+
+when ODIN_OS == "windows" {
+
+	import win32 "std:sys/windows"
+
+	Thread_Os_Specific :: struct {
+		win32_thread:    win32.Handle,
+		win32_thread_id: u32,
+	}
+
+} else {
+
+	// Using pthread
+	foreign import "system:pthread";
+
+	Pthread :: rawptr; // pthread_t is an opaque pointer.
+	Thread_Os_Specific :: #type_alias Pthread; 
+
+	foreign pthread {
+		@(link_name="pthread_create") _pthread_create :: proc(thread_id: Thread_Os_Specific, attributes: rawptr, procedure: rawptr, arguments: rawptr) -> i32 ---;
+		@(link_name="pthread_exit")   _pthread_exit   :: proc(status: rawptr) -> i32                                                                          ---;
+		@(link_name="pthread_join")   _pthread_join   :: proc(thread: Thread_Os_Specific, status_ptr: ^rawptr) -> i32                                         ---;
+		@(link_name="pthread_self")   _pthread_self   :: proc() -> Thread_Os_Specific                                                                         ---;
+		@(link_name="pthread_equal")  _pthread_equal  :: proc(a: Thread_Os_Specific, b: Thread_Os_Specific) -> i32                                            ---;
+	}
+}
+
+Thread_Proc :: #type proc(^Thread) -> int;
+
+Thread :: struct {
+	using specific:   Thread_Os_Specific,
+	procedure:        Thread_Proc,
+	data:             any,
+	user_index:       int,
+
+	init_context:     Context,
+	use_init_context: bool,
+}
+
+__thread_entry_proc :: proc "c" (t: ^Thread) -> i32 {
+	c := context;
+	if t.use_init_context {
+		c = t.init_context;
+	}
+
+	exit := 0;
+	context <- c {
+		exit = t.procedure(t);
+	}
+
+	return i32(exit);
+}
+
+create :: proc(procedure: Thread_Proc, use_init_context := false) -> ^Thread {
+
+	thread := new(Thread);
+	thread.procedure = procedure;
+
+	if use_init_context {
+		thread.init_context = context;
+		thread.use_init_context = true;
+	}
+
+	when ODIN_OS == "windows" {
+
+		win32_thread_proc := rawptr(__thread_entry_proc);
+
+		win32_thread := win32.create_thread(nil, 0, win32_thread_proc, thread, win32.CREATE_SUSPENDED, &thread.win32_thread_id);
+
+		if win32_thread == nil {
+			free(thread);
+			return nil;
+		}
+
+		thread.win32_thread = win32_thread;
+
+	} else {
+
+		if(_pthread_create(&thread.specific, nil, rawptr(__thread_entry_proc), thread) != 0) {
+			free(thread);
+			return nil;
+		}
+
+	}
+
+	return thread;
+}
+
+start :: proc(using thread: ^Thread) {
+	when ODIN_OS == "windows" do win32.resume_thread(win32_thread);
+	else do                      
+}
+
+is_done :: proc(using thread: ^Thread) -> bool {
+	res := win32.wait_for_single_object(win32_thread, 0);
+	return res != win32.WAIT_TIMEOUT;
+}
+
+join :: proc(using thread: ^Thread) {
+	win32.wait_for_single_object(win32_thread, win32.INFINITE);
+	win32.close_handle(win32_thread);
+	win32_thread = win32.INVALID_HANDLE;
+}
+destroy :: proc(thread: ^Thread) {
+	join(thread);
+	free(thread);
+}

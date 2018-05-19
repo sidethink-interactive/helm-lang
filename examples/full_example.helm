@@ -1,0 +1,71 @@
+import std:io;
+import std:mem;
+
+main :: () {
+	
+	io.writeln("Testing", 1, 2, 3);
+
+	io.write("One through ten: ");
+	for i in 0..10 {
+		io.write(i);
+	}
+	io.write('\n');
+
+	io.writeln("(2+3) * 5 + 3 = ", math_proc());
+
+	st := Struct_Type{5};
+	stp := new Struct_Type{5};
+
+
+	my_child_class := new Child_Class(5);
+
+
+	c := mem.Allocator {
+		my_malloc, my_free
+	}
+
+	push_allocator c {
+
+		my_struct_thing := new Struct_Type;
+
+		my_child_class.alloc_mem();
+
+		buf := mem.malloc(64);
+		mem.free(buf);
+
+
+	}
+
+
+}
+
+Base_Class :: class {
+	test: i32,
+
+	ctor :: () {
+		ctor(5);
+	}
+
+	ctor :: (test: i32) {
+		this.test = test;
+	}
+}
+
+Child_Class :: class(Base_Class) {
+	other: i64,
+
+	alloc_mem :: () {
+		heck := new Struct_Type{5};
+		io.writeln(heck);
+		free(heck);
+	}
+}
+
+Struct_Type :: struct {
+	test: i32,
+}
+
+math_proc :: () -> i32 {
+
+	return (2+3) * 5 + 3;
+}
