@@ -282,3 +282,17 @@ _alloc_command_line_arguments :: proc() -> []string {
 }
 
 
+console_enable_utf8 :: inline () do win32.set_console_output_cp(665001);
+
+// Activate stdio to the console that ran this program for graphical applications.
+// If `create_console`, then create a console if one cannot be found.
+// Returns a "failure" value.
+console_activate :: inline (create_console: bool) -> bool {
+	fail := win32.attach_console(win32.ATTACH_PARENT_PROCESS) == 0;
+	if fail && create_console do fail = win32.alloc_console() == 0;
+	return fail;
+}
+// Like `console_activate`, but will create a console if one does not exist.
+// Returns a "failure" value.
+console_create :: inline () -> bool do return activate_console(true);
+

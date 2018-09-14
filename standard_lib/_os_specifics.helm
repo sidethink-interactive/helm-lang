@@ -1,9 +1,9 @@
 import "std:feature_test";
 
-when      feature_test.APPLE     { export "std:sys/apple/os"     }
-else when feature_test.LINUX     { export "std:sys/linux/os"     }
-else when feature_test.BSD       { export "std:sys/bsd/os"       }
-else when feature_test.MICROSOFT { export "std:sys/microsoft/os" }
+when      feature_test.OS_APPLE     { export "std:sys/apple/os"     }
+else when feature_test.OS_LINUX     { export "std:sys/linux/os"     }
+else when feature_test.OS_BSD       { export "std:sys/bsd/os"       }
+else when feature_test.OS_MICROSOFT { export "std:sys/microsoft/os" }
 else {
 	_ := compile_assert(false, "Unsupported platform!");
 }

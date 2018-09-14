@@ -1,11 +1,11 @@
 using import "std:c";
-import "../../feature_test";
+using import "std:feature_test";
 
 Handle    :: distinct i32;
 File_Time :: distinct u64;
 Errno     :: distinct i32;
 
-when feature_test.LINUX_WIN && feature_test.IS_INTEL {
+when OS_LINUX_WIN && ARCH_INTEL {
 	blkcnt :: c_long;
 	ino :: c_ulong;
 	off :: c_long;
@@ -18,7 +18,7 @@ when feature_test.LINUX_WIN && feature_test.IS_INTEL {
 	ssize :: c_long;
 	time :: c_long;
 	uid :: u32;
-} else when feature_test.LINUX_WIN && feature_test.IS_ARM {
+} else when OS_LINUX_WIN && ARCH_ARM {
 	dev :: u64;
 	ino :: c_ulong;
 	ino64 :: u64;
@@ -33,7 +33,7 @@ when feature_test.LINUX_WIN && feature_test.IS_INTEL {
 	ssize :: c_long;
 	time :: c_long;
 	blkcnt64 :: i64;
-} else when feature_test.APPLE {
+} else when OS_APPLE {
 	blkcnt :: i64;
 	blksize :: i32;
 	dev :: i32;
@@ -52,7 +52,7 @@ else {
 }
 
 
-when feature_test.IS_64 {
+when ARCH_64 {
 	Nanosecond :: i64;
 	Time_Spec :: struct {
 		seconds:     i64,

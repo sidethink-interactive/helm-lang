@@ -2,8 +2,10 @@ export "gen/token_kinds"
 
 File :: struct {
 	path: string,
+	contents: string,
 	lines: [dynamic]string,
 	tokens: [dynamic]Token,
+	//ast: Ast_Node
 }
 
 Token :: struct {

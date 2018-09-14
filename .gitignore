@@ -1,3 +1,4 @@
+.vscode
 
 # Generated code
 src/gen/
@@ -5,6 +6,8 @@ src/gen/
 # Compiler
 helm
 helm.dSYM
+helm.pdb
+helm.exe
 
 # Temporary files
 *.ll

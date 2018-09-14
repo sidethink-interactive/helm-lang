@@ -169,7 +169,8 @@ main :: proc() {
 		"sub": {
 			"tester": "Hello, world!"
 		},
-		"arr": [10, 423, 6453, 10]`);
+		"arr": [10, 423, 6453, 10]
+	}`);
 
 	//my_item := marshall(My_Type, val);
 	//fmt.println(my_item);

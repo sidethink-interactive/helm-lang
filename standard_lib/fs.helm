@@ -2,7 +2,7 @@ import "os";
 import "str";
 using import "feature_test";
 
-when ODIN_OS == "windows" {
+when OS_WINDOWS {
 	import win32 "std:sys/microsoft/os";
 	foreign import "system:kernel32.lib";
 	@(default_calling_convention = "std")
@@ -20,9 +20,11 @@ when ODIN_OS == "windows" {
 	_DEFAULT_PERMS :: posix.S_IRUSR | posix.S_IWUSR | posix.S_IRGRP | posix.S_IWGRP | posix.S_IROTH | posix.S_IWOTH;
 }
 
+// TODO: Choose one consistent file for this procedure to reside in.
+read_entire_file :: os.read_entire_file;
 
 // Get a handle to the file pointed to by the path.
-open :: inline proc(path: string, flags := os.O_WRONLY | os.O_TRUNC, perms: posix.mode = _DEFAULT_PERMS) -> (os.Handle, bool) {
+open :: inline (path: string, flags := os.O_WRONLY | os.O_TRUNC, perms: posix.mode = _DEFAULT_PERMS) -> (os.Handle, bool) {
 	when ODIN_OS == "windows" {
 		h, ok := os.open(path, flags, perms);
 		return h, (ok == os.ERROR_NONE);
@@ -35,24 +37,23 @@ open :: inline proc(path: string, flags := os.O_WRONLY | os.O_TRUNC, perms: posi
 }
 
 // A wrapper around os.close so that they can be called from fs
-close :: inline proc(fd: os.Handle) {
+close :: inline (fd: os.Handle) {
 	os.close(fd);
 }
 
 // A wrapper around os.read so that they can be called from fs
-read :: inline proc(fd: os.Handle, data: []u8) -> (int, bool) {
+read :: inline (fd: os.Handle, data: []u8) -> (int, bool) {
 	rv, err := os.read(fd, data);
 	return rv, err == 0;
 }
 
 // A wrapper around os.write so that they can be called from fs
-write_str :: inline proc(fd: os.Handle, data: string) -> (int, bool) {
-	rv, err := os.write(fd, cast([]u8)data);
-	return rv, err == 0;
+write_str :: inline (fd: os.Handle, data: string) -> (int, bool) {
+	return write_ptr(fd, cast([]u8)data);
 }
 
 // A wrapper around os.write so that they can be called from fs
-write_ptr :: inline proc(fd: os.Handle, data: []u8) -> (int, bool) {
+write_ptr :: inline (fd: os.Handle, data: []u8) -> (int, bool) {
 	rv, err := os.write(fd, data);
 	return rv, err == 0;
 }
@@ -60,22 +61,20 @@ write_ptr :: inline proc(fd: os.Handle, data: []u8) -> (int, bool) {
 write :: proc[write_str, write_ptr];
 
 // A wrapper around os.seek so that they can be called from fs
-seek :: inline proc(fd: os.Handle, offset: i64, whence: int) -> (i64, bool) {
+seek :: inline (fd: os.Handle, offset: i64, whence: int) -> (i64, bool) {
 	rv, err := os.seek(fd, offset, whence);
 	return rv, err == 0;
 }
 
 // A wrapper around os.file_size so that they can be called from fs
-file_size :: inline proc(fd: os.Handle) -> (i64, bool) {
+file_size :: inline (fd: os.Handle) -> (i64, bool) {
 	rv, err := os.file_size(fd);
 	return rv, err == 0;
 }
 
-read_entire_file :: inline proc(path: string) -> (data: []u8, success: bool) {
-	return os.read_entire_file(path);
-}
-
-read_file_to_string :: inline proc(path: string) -> (data: string, success: bool) {
+// Allocates memory.
+// TODO: Does it really?
+read_file_to_string :: inline (path: string) -> (data: string, success: bool) {
 	buffer: []byte = ---;
 	buffer, success = os.read_entire_file(path);
 	if(!success) {
@@ -85,7 +84,7 @@ read_file_to_string :: inline proc(path: string) -> (data: string, success: bool
 }
 
 
-mkdir :: proc(path: string, perms: posix.mode = _DEFAULT_PERMS) {
+mkdir :: (path: string, perms: posix.mode = _DEFAULT_PERMS) {
 	parent := parent_name(path);
 	if !exists(parent) do mkdir(parent, perms);
 	when ODIN_OS == "windows" {
@@ -97,7 +96,7 @@ mkdir :: proc(path: string, perms: posix.mode = _DEFAULT_PERMS) {
 	}
 }
 
-chdir :: proc(path: string) -> bool {
+chdir :: (path: string) -> bool {
 
 	c_path := str.new_cstring(path);
 	defer free(c_path);
@@ -115,7 +114,7 @@ chdir :: proc(path: string) -> bool {
 
 // Allocates memory...?
 // At least, the array is allocated. Not sure about the contents.
-list_dir :: proc(path: string) -> ([]string, bool) {
+list_dir :: (path: string) -> ([]string, bool) {
 
 	c_path := str.new_cstring(path);
 	defer free(c_path);
@@ -148,7 +147,7 @@ list_dir :: proc(path: string) -> ([]string, bool) {
 
 // Returns whether or not a file exists.
 // NOTE: Avoid patters similar to `if exists(path) do open(file)` because this is prone to race conditions.
-exists :: inline proc(path: string) -> bool {
+exists :: inline (path: string) -> bool {
 
 	when ODIN_OS == "windows" {
 
@@ -164,7 +163,7 @@ exists :: inline proc(path: string) -> bool {
 	}
 }
 
-is_file :: inline proc(path: string) -> bool {
+is_file :: inline (path: string) -> bool {
 
 	when ODIN_OS == "windows" {
 
@@ -177,7 +176,7 @@ is_file :: inline proc(path: string) -> bool {
 	}
 }
 
-is_directory :: inline proc(path: string) -> bool {
+is_directory :: inline (path: string) -> bool {
 
 	when ODIN_OS == "windows" {
 
@@ -192,11 +191,12 @@ is_directory :: inline proc(path: string) -> bool {
 		return posix.S_ISDIR(info.mode);
 	}
 }
-is_dir :: inline proc(path: string) -> bool do return is_directory(path);
+
+is_dir :: inline (path: string) -> bool do return is_directory(path);
 
 // Not a directory, file, or s-link.
 // Always false on win32.
-is_special :: inline proc(path: string) -> bool {
+is_special :: inline (path: string) -> bool {
 
 	when ODIN_OS == "windows" {
 		return false;
@@ -208,12 +208,12 @@ is_special :: inline proc(path: string) -> bool {
 }
 
 // Allocates memory.
-read_link :: proc(path: string) -> (string, bool) {
+read_link :: (path: string) -> (string, bool) {
 
 	path_cstr := str.new_cstring(path);
 	defer free(path_cstr);
 
-	when feature_test.MICROSOFT {
+	when OS_WINDOWS {
 
 		// Dupes the string so that you can free the return value safely.
 		return str.dup(path);
@@ -223,7 +223,7 @@ read_link :: proc(path: string) -> (string, bool) {
 		if link_info, err := posix.lstat(path); err == 0 {
 
 			buf := make([]u8, link_info.size);
-			err = cast(type_of(err))posix.readlink(path_cstr, cast(cstring)&buf[0], cast(feature_test.size_t)link_info.size);
+			err = cast(type_of(err))posix.readlink(path_cstr, cast(cstring)&buf[0], cast(size_t)link_info.size);
 			if err == 0 do return string(buf), true;
 			free(buf);
 		}
@@ -234,45 +234,35 @@ read_link :: proc(path: string) -> (string, bool) {
 
 // Returns the directory the current program's binary file is in.
 // Allocates memory.
-get_binary_path :: proc() -> (string, bool) {
+get_binary_path :: inline () -> (string, bool) {
 
-	when APPLE {
+	when OS_APPLE {
+
+		// We're going to take any strings we get and duplicate them.
+		// That way their memory is managed by the current allocator instead of always being malloc/free
+		// so that we can just free() them when we're done with them in user code
 		
+		size: u32;
 
-	fmt.println("A");
-		size : u32;
-
-	fmt.println("B");
 		os.NSGetExecutablePath(nil, &size);
 
-	fmt.println("C");
 		if size == 0 do return "", false;
 
-	fmt.println("D", size);
 		buf := make([]u8, size);
-
-	fmt.println("E");
 		defer free(buf);
 
-	fmt.println("F");
 		os.NSGetExecutablePath(cast(cstring)&buf[0], &size);
 
-	fmt.println("G");
-
 		abs_path := posix.realpath(cast(cstring)&buf[0], nil);
-
-	fmt.println("H");
 		defer os.heap_free(cast(rawptr)cast(^u8)abs_path);
 
-
-	fmt.println("I");
 		return str.dup(cast(string)abs_path), true;
 
-	} else when LINUX {
-		return read_link("/proc/self/exe");
-	} else when MICROSOFT {
+	} else when OS_LINUX {
+		s := read_link("/proc/self/exe");
+	} else when OS_WINDOWS {
 		_ := compile_assert(false, "TODO");
-	} else when BSD {
+	} else when OS_BSD {
 		_ := compile_assert(false, "TODO");
 	} else {
 		_ := compile_assert(false, "Unsupported OS");
@@ -294,8 +284,6 @@ cwd :: proc() -> (string, bool) {
 				the buffer, in characters, including the null-terminating character.
 		*/
 
-		// Good enough...?
-		//buf: [4096]u8;
 		len := _get_current_directory(0, nil);
 
 		if len != 0 {
@@ -309,7 +297,7 @@ cwd :: proc() -> (string, bool) {
 
 		}
 
-		return nil, false;
+		return "", false;
 
 
 	} else {
@@ -323,7 +311,7 @@ cwd :: proc() -> (string, bool) {
 		// A temporary converted string that will be duplicated with data from the context's allocator.
 		_str := cast(string) heap_cwd;
 
-		return str.new_string(_str), true;
+		return str.dup(_str), true;
 	}
 }
 
@@ -332,7 +320,7 @@ when ODIN_OS == "windows" {
 } else {
 	SEPERATOR :: '/';
 }
-is_path_separator :: inline proc(c: u8) -> bool {
+is_path_separator :: inline (c: u8) -> bool {
 	when ODIN_OS == "windows" {
 		return c == '\\' || c == '/';
 	} else {
@@ -341,50 +329,212 @@ is_path_separator :: inline proc(c: u8) -> bool {
 }
 
 // Return the filename of a path. E.g. /tmp/my/file -> file
-base_name :: proc(path: string) -> string {
+// Allocates memory.
+base_name :: (path: string) -> string {
 	first_non_sep := -1;
 	for i := len(path)-1; i>0; i-=1 {
 		if is_path_separator(path[i]) {
-			if first_non_sep != -1 do return path[i+1..first_non_sep+1];
+			if first_non_sep != -1 do return str.dup(path[i+1..first_non_sep+1]);
 		} else if first_non_sep == -1 do first_non_sep = i;
 	}
-	return path;
+	return str.dup(path);
 }
-// Return the parent of a path. E.g. /tmp/my/file -> file, /tmp/my -> /tmp, /tmp/my///// -> /tmp
-parent_name :: proc(path: string) -> string {
+// Return the parent of a path. E.g. /tmp/my/file -> /tmp/my, /tmp/my -> /tmp, /tmp/my///// -> /tmp
+// Allocates memory.
+parent_name :: (path: string) -> string {
 	hit_non_sep := false;
 	for i := len(path)-1; i>0; i-=1 {
 		if is_path_separator(path[i]) {
-			if hit_non_sep do return path[0..i];
+			if hit_non_sep do return str.dup(path[0..i]);
 		} else do hit_non_sep = true;
 	}
-	return path;
+	return str.dup(path);
 }
 
-// Convert a relative path to an absolute path
-to_absolute_from_cwd :: proc(paths: ...string) -> (string, bool) {
+// Maps file's path relative to root's.
+// E.g. to_relative('res/a/file.txt', 'org/b/x.xyz')
+//      gives '../../b/x.xyz', assuming that both files exist.
+//
+// NOTE: This assumes that all files mentioned EXIST.
+//       This is because we verify that `root` is a directory,
+//       and we obtain the absolute version of both paths before operating.
+//       If you want to skip this step, and you want root to always
+//       be treated as a directory, use `to_relative_raw`
+//
+// Allocates memory.
+to_relative_two :: (root, file: string) -> (string, bool) {
+
+	assert(len(root) != 0);
+
+	success: bool = ---;
+	root, success = to_absolute(root);
+	if !success do return "", false;
+	defer free(root);
+	return _to_relative_shared(root, file);
+}
+
+// Maps file's path relative to the current working directory.
+//
+// NOTE: This assumes that all files mentioned EXIST.
+//       If you want to skip this verification, use to_relative_raw.
+//
+// Allocates memory.
+to_relative_cwd :: (file: string) -> (string, bool) {
+
+	root, success := get_binary_path();
+	if !success do return "", false;
+	defer free(root);
+	return _to_relative_shared(root, file);
+}
+
+to_relative :: proc[to_relative_two, to_relative_cwd];
+
+// A helper for the public APIs to_relative_two and to_relative_cwd, which are exposed as to_relative
+// Allocates memory.
+_to_relative_shared :: (root, file: string) -> (string, bool) {
+
+	free_real_root := false;
+	real_root := root;
+	defer if free_real_root do free(real_root);
+	if !is_dir(root) {
+		free_real_root = true;
+		real_root = parent_name(root);
+	}
+
+	new_file, free_new_file	:= to_absolute(file);
+	if free_new_file do file = new_file;
+	defer if free_new_file do free(new_file);
+
+	return to_relative_raw(file, real_root);
+}
+
+import "std:fmt"
+import "std:raw"
+import "std:mem"
+
+// Maps file's path relative to root's.
+// E.g. to_relative('res/a/', 'res/b/x.xyz')
+//      gives '../b/x.xyz'
+// Allocates memory.
+to_relative_raw :: (root, file: string) -> (string, bool) {
+
+	// TODO: This function **really** needs a test.
+	//       I don't have very much faith that it will hold up to testing.
+
+	if common_path, success := common_path(file, root); success {
+		defer free(common_path);
+		file = file[len(common_path)..];
+		root = root[len(common_path)..];
+		if len(common_path) != 0 && is_path_separator(file[0]) do file = file[1..];
+	} else do return "", false; // If we can't get a common path, we have to give up.
+
+	root_dir_counter := len(root) == 0 ? 0 : 1;
+	for i in 0..len(root) do if is_path_separator(root[i]) do root_dir_counter += 1;
+
+	new_path := make([]byte, len(file) + 3 * root_dir_counter);
+	for i in 0..root_dir_counter {
+		new_path[i * 3 + 0] = '.';
+		new_path[i * 3 + 1] = '.';
+		new_path[i * 3 + 2] = SEPERATOR;
+	}
+	
+	mem.copy(raw.data(new_path) + 3 * root_dir_counter, raw.data(file), len(file));
+
+	return cast(string)new_path, true;
+}
+
+is_abs :: (path: string) -> bool {
+	when OS_WINDOWS {
+		if len(path) <= 2 do return false;
+		drive := path[0];
+		return ((drive >= 'A' && drive <= 'Z') || (drive >= 'a' && drive <= 'z')) && path[1] == ':';
+	} else {
+		return len(path) != 0 && path[0] == '/';
+	}
+}
+
+// Returns the longest common sub-path of the paths
+// Does not perform any normalization or convert to absolute paths.
+// An error value is returned if absolute and relative paths are mixed,
+//   or if less than two paths are passed.
+// A blank string is returned if the paths have nothing in common.
+// Inspired by python's commonpath
+// Allocates memory.
+common_path :: (paths: ...string) -> (string, bool) {
+
+	{ // Input validation.
+		if len(paths) < 2 do return "", false;
+
+		// We can't mix abs and rel paths.
+		mode := 0; // Abs: 1, Rel: 2
+		for path in paths {
+			if is_abs(path) {
+				if mode == 0 do mode = 1;
+				else if mode == 2 do return "", false;
+			} else {
+				if mode == 0 do mode = 2;
+				else if mode == 1 do return "", false;
+			}
+		}
+	}
+
+	shared := paths[0];
+	complete_path := true;
+
+
+	for i in 1..len(paths) {
+		p := paths[i];
+		if len(shared) > len(p) do shared = shared[0 .. len(p)];
+		for j in 0..len(shared) {
+			if p[j] != shared[j] {
+				if (j == len(p) - 1 && j == len(shared) - 1) || is_path_separator(p[j]) do complete_path = true;
+				else do complete_path = false;
+				shared = shared[0 .. j];
+				break;
+			}
+		}
+	}
+
+	if complete_path == false {
+		for i := len(shared); i > 0; i-=1 {
+			if is_path_separator(shared[i-1]) {
+				shared = shared[0 .. i];
+				break;
+			}
+		}
+	}
+
+	return str.dup(shared), true;
+}
+
+// Convert a relative path to an absolute path using the cwd.
+// Allocates memory.
+to_absolute :: (paths: ...string) -> (string, bool) {
+	assert(len(paths) != 0);
+
 	cwd_str, ok := cwd();
 	if !ok do return "", false;
 	defer free(cwd_str);
 	spread := make([]string, len(paths)+1);
 	spread[0] = cwd_str;
 	for _, i in paths do spread[i+1] = paths[i];
-	return to_absolute(...spread), true;
+	return build_path(...spread), true;
 }
 
-import "std:fmt";
-to_absolute :: proc(paths: ...string) -> string {
+// Allocates memory.
+build_path :: (paths: ...string) -> string {
 	assert(len(paths) > 0);
 	if len(paths) > 1 {
+		// TODO: Make this configurable some way so that people can work with Windows paths on *nix?
 		second := paths[1];
 		when ODIN_OS == "windows" {
 			if len(second) > 2 do
 				if (second[0] >= 'a' && second[0] <= 'z') || (second[0] >= 'A' && second[0] <= 'Z') {
-					if second[1] == ':' do return to_absolute(...paths[1..]);
+					if second[1] == ':' do return build_path(...paths[1..]);
 				}
 		} else {
 			if len(paths[0]) > 1 do
-				if(second[0] == '/') do return to_absolute(...paths[1..]);
+				if(second[0] == '/') do return build_path(...paths[1..]);
 		}
 	}
 	path_ctor: [dynamic]string;

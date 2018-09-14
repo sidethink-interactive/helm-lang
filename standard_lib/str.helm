@@ -92,7 +92,8 @@ trim :: proc(s: string) -> string {
 
 // Splits the first string by the second.
 // Note that "a,,b" split by "," will give ["a","b"] not ["a","","b"]
-split :: proc(haystack, needle: string) -> [dynamic]string {
+// unless allow_blank is specified.
+split :: proc(haystack, needle: string, allow_blank := false) -> [dynamic]string {
 
 	assert(len(haystack)>0);
 	assert(len(haystack)>len(needle));
@@ -114,14 +115,14 @@ split :: proc(haystack, needle: string) -> [dynamic]string {
 
 		if is_match {
 			slice := haystack[last_start..i];
-			if len(slice) > 0 do append(&strs, slice);
+			if len(slice) > 0 || allow_blank do append(&strs, slice);
 			i += len(needle) - 1;
 			last_start = i + 1;
 		}
 	}
 
 	slice := haystack[last_start..len(haystack)];
-	if len(slice) > 0 do append(&strs, slice);
+	if len(slice) > 0 || allow_blank do append(&strs, slice);
 
 	return strs;
 }

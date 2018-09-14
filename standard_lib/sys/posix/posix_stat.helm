@@ -1,5 +1,5 @@
 import posix "posix_types";
-import "../../feature_test";
+using import "std:feature_test";
 
 // File type
 S_IFMT   : posix.mode : 0o0170000; // Type of file mask
@@ -35,7 +35,7 @@ S_ISGID : posix.mode : 0o02000; // Set group id on execution
 S_ISVTX : posix.mode : 0o01000; // Directory restrcted delete
 
 
-when feature_test.LINUX_WIN && ODIN_ARCH == "amd64" {
+when OS_LINUX_WIN && ARCH_64 {
 	Stat :: struct {
 		device_id:     posix.dev, // ID of device containing file
 		inode:         posix.ino, // File serial number
@@ -57,7 +57,7 @@ when feature_test.LINUX_WIN && ODIN_ARCH == "amd64" {
 		_reserve2,
 		_reserve3:     i64
 	}
-} else when feature_test.LINUX_WIN && ODIN_ARCH == "x86" {
+} else when OS_LINUX_WIN && ARCH_32 {
 	Stat :: struct {
 		device_id:     posix.dev, // ID of device containing file
 		_pad1:         u16, // 16 bits of padding
@@ -81,7 +81,7 @@ when feature_test.LINUX_WIN && ODIN_ARCH == "amd64" {
 		_reserve1,
 		_reserve2:     i64
 	}
-} else when feature_test.LINUX_WIN && ODIN_ARCH == "arm" {
+} else when OS_LINUX_WIN && ARCH_ARM {
 	Stat :: struct {
 		device_id:     posix.dev, // ID of device containing file
 		_pad1:         u16, // 16 bits of padding
@@ -102,7 +102,7 @@ when feature_test.LINUX_WIN && ODIN_ARCH == "amd64" {
 
 		inode:         posix.ino64, // File serial number
 	}
-} else when feature_test.LINUX_WIN && ODIN_ARCH == "arm64" {
+} else when OS_LINUX_WIN && ARCH_ARM64 {
 	Stat :: struct {
 		device_id:     posix.dev, // ID of device containing file
 		inode:         posix.ino64, // File serial number
@@ -124,7 +124,7 @@ when feature_test.LINUX_WIN && ODIN_ARCH == "amd64" {
 		_reserve1,
 		_reserve2:     i32,
 	}
-} else when ODIN_OS == "osx" || ODIN_OS == "ios" {
+} else when OS_APPLE {
 	// Apple has gone completely 64bit, so we don't need to worry about x86 compat.
 	// Apparently they use the same struct on x64 and on ARM. Glad to see someone's sane.
 
@@ -150,7 +150,7 @@ when feature_test.LINUX_WIN && ODIN_ARCH == "amd64" {
 		_reserve2,
 		_reserve3:     i64,
 	}
-} else when ODIN_OS == "bsd" {
+} else when OS_BSD {
 	// TODO(zachary): Implement!
 	#assert(false); // Unsupported architecture
 } else {

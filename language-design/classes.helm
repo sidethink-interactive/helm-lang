@@ -1,0 +1,23 @@
+
+import std:io;
+
+TC :: class {
+
+	i := 5,
+
+	get_delegate :: () -> (delegate()) {
+
+		return delegate() {
+			io.writeln(i);
+		}
+	}
+}
+
+main :: () {
+
+
+	test: TC;
+	del := test->get_delegate();
+	test.i = 10;
+	del(); // 10...?
+}

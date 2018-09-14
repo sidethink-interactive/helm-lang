@@ -30,6 +30,7 @@ SEEK_MAX   :: SEEK_HOLE;
 
 // NOTE(zangent): These are OS specific!
 // Do not mix these up!
+// TODO: Make this accurate.
 RTLD_LAZY         :: 0x001;
 RTLD_NOW          :: 0x002;
 RTLD_BINDING_MASK :: 0x3;
@@ -44,10 +45,20 @@ X_OK :: 1; // Test for execute permission
 W_OK :: 2; // Test for write permission
 R_OK :: 4; // Test for read permission
 
+when ODIN_OS == "osx" {
+	foreign libc {
+		@(link_name="lseek") _unix_seek    :: proc(fd: Handle, offset: off, whence: i32) -> i64 ---;
+	}
+} else {
+	foreign libc {
+		@(link_name="lseek64") _unix_seek    :: proc(fd: Handle, offset: i64, whence: i32) -> i64 ---;
+	}
+}
+
 foreign libc {
 	@(link_name="read")    _unix_read    :: proc(fd: Handle, buf: rawptr, size: int) -> int ---;
 	@(link_name="write")   _unix_write   :: proc(fd: Handle, buf: rawptr, size: int) -> int ---;
-	@(link_name="lseek64") _unix_seek    :: proc(fd: Handle, offset: i64, whence: i32) -> i64 ---;
+	//@(link_name="lseek64") _unix_seek    :: proc(fd: Handle, offset: i64, whence: i32) -> i64 ---;
 	@(link_name="gettid")  _unix_gettid  :: proc() -> u64 ---;
 	// @(link_name="stat")    _unix_stat    :: proc(path: cstring, stat: ^Stat) -> i32 ---;
 	@(link_name="access")  _unix_access  :: proc(path: cstring, mask: int) -> int ---;
@@ -180,3 +191,10 @@ _alloc_command_line_arguments :: proc() -> []string {
 	}
 	return args;
 }
+
+// Activate stdio to the console that ran this program for Win32 graphical applications.
+// If `create_console`, then create a console if one cannot be found.
+// These are inline stubs on posix, so they'll be ignored.
+// Returns a "failure" value.
+activate_console :: inline (create_console: bool) -> bool do return false;
+create_console :: inline () -> bool do return false;

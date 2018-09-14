@@ -7,7 +7,6 @@ cd src
 cd ..
 
 # Compile.
-../helm-lang/helm build src/main.helm
+../helm-lang/helm build src/main.helm && mv main helm && exit 0
 
-# Rename binary.
-mv main helm
+exit 1

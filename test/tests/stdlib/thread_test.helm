@@ -1,0 +1,7 @@
+import "std:thread"
+
+main :: () {
+	thread.create((using t: ^thread.Thread) -> i32 {
+		
+	});
+}

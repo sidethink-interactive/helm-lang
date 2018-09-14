@@ -551,6 +551,8 @@ CP_SYMBOL     :: 42;    // SYMBOL translations
 CP_UTF7       :: 65000; // UTF-7 translation
 CP_UTF8       :: 65001; // UTF-8 translation
 
+ATTACH_PARENT_PROCESS :: transmute(u32)-1;
+
 @(default_calling_convention = "std")
 foreign kernel32 {
 	@(link_name="GetLastError")              get_last_error              :: proc() -> i32 ---;
@@ -707,6 +709,11 @@ foreign kernel32 {
 	@(link_name="LoadLibraryW")   load_library_w   :: proc(c_str: Wstring) -> Hmodule ---;
 	@(link_name="FreeLibrary")    free_library     :: proc(h: Hmodule) ---;
 	@(link_name="GetProcAddress") get_proc_address :: proc(h: Hmodule, c_str: cstring) -> rawptr ---;
+
+	@(link_name="SetConsoleOutputCP") set_console_output_cp :: (codepage_id: u32) -> Bool ---;
+	@(link_name="AttachConsole")      attach_console        :: (process_id: u32) -> Bool ---;
+	@(link_name="AllocConsole")       alloc_console         :: () -> Bool ---;
+	@(link_name="FreeConsole")        free_console          :: () -> Bool ---;
 
 }
 

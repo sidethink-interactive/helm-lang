@@ -1,8 +1,2 @@
-// TODO(zachary): Are there more OS types to worry about?
-//                Probably not.
 
-//when ODIN_OS == "windows" {
-	export "win32";
-//} else {
-//	_ := compile_assert(false, "Unsupported Microsoft NT-like system.");
-//}
+export "win32";

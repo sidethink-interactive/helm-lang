@@ -1,7 +1,25 @@
 import "log"
 import "util"
-import "types"
+using import "types"
+import "std:str"
+import "std:fs"
 
-lex_file :: (file: ^File) {
 
+
+process :: (file: ^File) {
+
+	okay: bool = ---;
+
+	file.contents, okay = fs.read_file_to_string(file.path);
+
+	if !okay {
+		// todo
+		return;
+
+	}
+
+	// Theoretically, I could maybe grab the lines while I lex, but I feel like that's a *little* unpredictable.
+	file.lines = str.split(file.contents, "\n", true);
+
+	
 }

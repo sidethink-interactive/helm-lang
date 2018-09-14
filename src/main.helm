@@ -3,6 +3,9 @@ import "std:fmt"
 import "std:str"
 import "std:fs"
 
+import "lexer"
+using import "types"
+
 
 Build_Kind :: enum {
 	RELEASE,
@@ -12,11 +15,11 @@ Build_Kind :: enum {
 
 Compiler_State :: struct {
 	build_kind: Build_Kind = Build_Kind.DEBUG,
-	got_main_file: bool = false,
-	main_file: string,
+	got_main_file_path: bool = false,
+	main_file_path: string,
 }
 
-main :: () {
+main :: () -> i32 {
 
 	args := os.args[1..];
 	arg: string = ---;
@@ -29,7 +32,7 @@ main :: () {
 
 		arg = args[i];
 		switch arg {
-			case "-v": fmt.println("Helm programming language compiler version 0.1"); return;
+			case "-v": fmt.println("Helm programming language compiler version 0.1"); return 0;
 			case "-b": fallthrough;
 			case "--build":
 				i+=1;
@@ -57,20 +60,41 @@ main :: () {
 				}
 			case:
 				if(fs.is_file(arg)) {
-					if got_main_file {
-						fmt.printp("Attempted to set another main file ({}) when there already is one ({}).\nIgnoring new file...\n", arg, main_file);
+					if got_main_file_path {
+						fmt.printp("Attempted to set another main file ({}) when there already is one ({}).\nIgnoring new file...\n", arg, main_file_path);
 						break;
 					}
 					fmt.println("Got main file ", arg);
-					main_file = arg;
-					got_main_file = true;
+					main_file_path = arg;
+					got_main_file_path = true;
 				} else {
 					fmt.printp("Unknown argument or invalid file '{}'\n", arg);
 				}
 		}
 	}
 
-	fmt.printp("Starting {} build of \"{}\".\n", build_kind, main_file);
+	fmt.printp("Starting {} build of \"{}\".\n", build_kind, main_file_path);
+	process(main_file_path);
 
-	
+	a := "standard_lib/os/bsd.helm";
+	b := "standard_lib/sys/apple/cocoa.helm";
+
+	bm, succ := fs.to_relative(b, a);	
+
+	if binary_path, succ := fs.get_binary_path(); succ {
+
+		defer free(binary_path);
+	} else {
+		fmt.println("Failed to obtain binary directory.\nThe compiler can't really run without this.");
+		return 1;
+	}
+
+	return 0;
+}
+
+process :: (main_file_path: string) {
+
+	files: [dynamic]File;
+
+	//lexer.process(&files, main_file_path);
 }
