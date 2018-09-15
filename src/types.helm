@@ -3,6 +3,9 @@ export "gen/token_kinds"
 File :: struct {
 	path: string,
 	contents: string,
+	// Used for error logging,
+	// not for lexing.
+	owned_strings: [dynamic]^byte,
 	lines: [dynamic]string,
 	tokens: [dynamic]Token,
 	//ast: Ast_Node
@@ -10,7 +13,7 @@ File :: struct {
 
 Token :: struct {
 	kind: Token_Kind,
-	text: string,
 	file: ^File,
 	line, col: u32,
+	text: string,
 }

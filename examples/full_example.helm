@@ -40,6 +40,19 @@ main :: () {
 
 }
 
+construct_binding :: (e: Entity) -> Entity {
+	
+}
+
+@(compile_time("type_checked"))
+example_meta :: (files: []File) {
+	for file in files {
+		matching := file.entities.get_matching_attr("binding_gen");
+		for m in matching do file.add_entity(construct_binding(m));
+	}
+}
+
+@(binding_gen)
 Base_Class :: class {
 	test: i32,
 
@@ -69,4 +82,9 @@ Struct_Type :: struct {
 math_proc :: () -> i32 {
 
 	return (2+3) * 5 + 3;
+}
+
+@(foreign_library="c") {
+
+	malloc :: proc(s: size_t) -> rawptr ---;
 }

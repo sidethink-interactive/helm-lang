@@ -475,3 +475,20 @@ F64_MIN_10_EXP :: -307;                     // min decimal exponent
 F64_MIN_EXP    :: -1021;                    // min binary exponent
 F64_RADIX      :: 2;                        // exponent radix
 F64_ROUNDS     :: 1;                        // addition rounding: near
+
+
+// TODO: Implement exponent so that this can be expanded properly,
+//       instead of relying on precalculated constants.
+
+I64_MIN : i64 :  -9223372036854775807-1; // -(2^(64 - 1)) - 0;
+I64_MAX : i64 :  9223372036854775807;    // +(2^(64 - 1)) - 1;
+U64_MAX : u64 :  18446744073709551615;   // +(2^(64 - 0)) - 0;
+I32_MIN : i32 :  -2147483647-1;          // -(2^(32 - 1)) - 0;
+I32_MAX : i32 :  2147483647;             // +(2^(32 - 1)) - 1;
+U32_MAX : u32 :  4294967295;             // +(2^(32 - 0)) - 0;
+I16_MIN : i16 :  -32767-1;               // -(2^(16 - 1)) - 0;
+I16_MAX : i16 :  32767;                  // +(2^(16 - 1)) - 1;
+U16_MAX : u16 :  65535;                  // +(2^(16 - 0)) - 0;
+I8_MIN  : i8  :  -128;                   // -(2^( 8 - 1)) - 0;
+I8_MAX  : i8  :  127;                    // +(2^( 8 - 1)) - 1;
+U8_MAX  : u8  :  255;                    // +(2^( 8 - 0)) - 0;

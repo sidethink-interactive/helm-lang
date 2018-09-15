@@ -183,6 +183,8 @@ for zone in token_zones:
 	source_code += 'is_token_' + zone[1] + '_b :: inline(t: Token) -> bool do return is_token_' + zone[1] + '(t.kind);\n'
 	source_code += 'is_token_' + zone[1] + ' :: proc[is_token_' + zone[1] + '_a, is_token_' + zone[1] + '_b];\n\n'
 
+source_code += 'tokens_equal :: (a, b: Token) -> bool do return (a.col == b.col && a.line == b.line) || a.text == b.text;\n';
+
 # Write file src/gen/token_comp.helm
 
 out_file = open('gen/token_comp.helm', 'w')

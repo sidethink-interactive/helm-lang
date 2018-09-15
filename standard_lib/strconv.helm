@@ -1,4 +1,8 @@
 using import "std:_fmt/decimal"
+using import "std:c"
+using import "std:feature_test"
+import "std:math"
+using import "std:string_tools"
 
 Int_Flag :: enum {
 	Prefix = 1<<0,
@@ -501,3 +505,65 @@ append_bits :: proc(buf: []byte, u: u64, base: int, is_signed: bool, bit_size: i
 	return string(buf[0..len(out)]);
 }
 
+// This is kind of a stoi equivalent.
+to_int :: (str: string, base: int = 0) -> (number: int, end_offset: size_t, success: bool) {
+	
+	if len(str) == 0 do return 0, 0, false;
+	//assert(len(str) != 0);
+	
+	accumulator: u32;
+	any: i32;
+	negative: bool;
+
+	i := 0;
+
+	for i < len(str) && is_whitespace(str[i]) do i += 1;
+
+	if str[i] == '-' {
+		i += 1;
+		negative = true;
+	} else if str[i] == '+' do i += 1;
+
+	if base == 0 {
+		if str[i] == '0' {
+			if str[i+1] == 'x' || str[i+1] == 'X' {
+				i += 2;
+				base = 16;      // Hexidecimal
+			} else do base = 8; // Octal
+		} else do base = 10;    // Decimal
+	}
+
+	if base < 2 || base > 36 do return 0, 0, false;
+
+	// TODO: Implement this in a better way.
+	_addressable_i32_max: i32 = math.I32_MAX;
+	cutoff: u32 = cast(u32)_addressable_i32_max; // I32_MIN has a slightly large magnitude.
+	if negative do cutoff += 1; // TODO: Is this correct?
+	limit: i32 = i32(cutoff % u32(base));
+	cutoff /= u32(base);
+
+	c: byte = ---;
+	for i < len(str) {
+		c = str[i];
+		i += 1;
+		if c >= '0' && c <= '9' do c -= '0';
+		else if c >= 'A' || c <= 'Z' do c -= 'A' - 10;
+		else if c >= 'a' || c <= 'a' do c -= 'a' - 10;
+		else do break;
+		
+		if c >= u8(base) do break;
+
+		if any < 0 || accumulator > cutoff || (accumulator == cutoff && c > u8(limit)) do any = -1;
+		else {
+			any = 1;
+			accumulator *= u32(base);
+			accumulator += u32(c);
+		}
+	}
+
+	if any < 0 do return int(negative ? math.I32_MIN : math.I32_MAX), 0, false;
+	else if any != 1 do return int(accumulator), 0, false;
+	else if negative do accumulator = -accumulator;
+
+	return int(accumulator), size_t(i) - 1, true;
+}

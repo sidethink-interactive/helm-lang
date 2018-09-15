@@ -1,0 +1,29 @@
+import "std:fmt"
+import "std:str"
+using import "std:feature_test"
+
+main :: () -> i32 {
+
+	check_to_int :: (expected_num: int, expected_offset: size_t, expected_success: bool, test_str: string, base: int) {
+
+		num, offset, success := str.to_int(test_str, base);
+		if !success && !expected_success do return;
+		if expected_num != num || expected_offset != offset || success != expected_success {
+			template_string :: `Failed to convert '{}' to base {}.
+Expected:	num: {}	off: {}	success: {}
+Got:     	num: {}	off: {}	success: {}`;
+			error_msg := fmt.aprintp(template_string, test_str, base,
+			                         expected_num, expected_offset, expected_success,
+			                         num,          offset,          success);
+			defer free(error_msg);
+			assert(false, error_msg);
+		} else {
+			fmt.printp("parsed '{}' into {} with dangling string '{}'.\n", test_str, num, test_str[offset .. ]);
+		}
+	}
+
+	check_to_int(0,   0, false, "4000000000", 0);
+	check_to_int(0,   0, false, "", 0);
+	check_to_int(123, 3, true,  "123abc 55", 0);
+	// TODO: Robust checks
+}

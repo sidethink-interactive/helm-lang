@@ -3,14 +3,28 @@ import "util"
 using import "types"
 import "std:str"
 import "std:fs"
+using import "std:feature_test"
+using import "gen/token_comp"
+import "std:raw"
+import "std:utf8"
 
+// Debug
+import "std:fmt"
 
+Lexer_State :: struct {
+	length: size_t,
+	file: ^File,
+	// Start at one
+	line: u32 = 1,
+	col:  u32 = 1,
+	cursor: size_t = 0,
+}
 
-process :: (file: ^File) {
+process :: (source_file: ^File) {
 
 	okay: bool = ---;
 
-	file.contents, okay = fs.read_file_to_string(file.path);
+	source_file.contents, okay = fs.read_file_to_string(source_file.path);
 
 	if !okay {
 		// todo
@@ -18,8 +32,298 @@ process :: (file: ^File) {
 
 	}
 
-	// Theoretically, I could maybe grab the lines while I lex, but I feel like that's a *little* unpredictable.
-	file.lines = str.split(file.contents, "\n", true);
+	// Used for error reporting, not parsing.
+	source_file.lines = str.split(source_file.contents, "\n", true);
 
+	// When we pass `state` to functions, we need to pass a pointer,
+	// but there's no sense in heap-allocating it.
+	using _state := Lexer_State{size_t(len(source_file.contents)), source_file};
+	state := &_state;
+
+	lex_loop: // This bad boy is a behemoth.
+	for cursor < length {
+
+		eat_whitespace(state);
+
+		c  := file.contents[cursor];
+		cn := cursor < length - 1 ? file.contents[cursor + 1] : 0;
+		if is_identifier_char(c, false) {
+
+			t := Token{Token_Kind.Identifier, file, line, col, ""};
+			name_start := cursor;
+			for cursor < length {
+				if is_identifier_char(file.contents[cursor], true) {
+					cursor += 1;
+					col += 1; // Identifier chars don't include \n, so this is a safe assumption
+				} else do break;
+			}
+
+			t.text = file.contents[name_start .. cursor];
+
+			for i in Token_Kind._KeywordBegin+1 .. Token_Kind._KeywordEnd {
+				if t.text == token_names[i] {
+					t.kind = i;
+				}
+			}
+
+			append(&file.tokens, t);
+
+		}
+
+		else if c == '/' && cn == '*' do append(&file.tokens, eat_block_comment(state));
+
+		else if c == '/' && cn == '/' do append(&file.tokens, eat_line_comment(state));
+
+		else if str.is_numeric(c) || (c == '.' && str.is_numeric(cn)) {
+			// Numeric literal
+
+			// We'll assume it's an integer until it's proven otherwise.
+			token := Token{Token_Kind.Integer, file, line, col, ""};
+
+			if c == '.' do token.kind = Token_Kind.Float;
+
+			is_hex := false;
+			start := cursor;
+			i := 0;
+			for cursor < length {
+				i += 1;
+				cursor += 1;
+				col += 1;
+				d := file.contents[cursor];
+				if str.is_numeric(d) do continue;
+				else if i == 1 && (d == 'X' || d == 'x' || d == 'b') {
+					if c != '0' {
+						str := fmt.aprintp("Expected a {} literal of pattern 0{}, not {}{2}", d=='b'?"binary":"hex", d, c);
+						defer free(str);
+						log.error(file, line, col, str);
+					}
+					if d != 'b' do is_hex = true;
+					continue;
+				} else if is_hex && ((d >= 'a' && d <= 'f') || (d >= 'A' && d <= 'F')) do continue;
+				else do break;
+			}
+			token.text = file.contents[start .. cursor];
+			append(&file.tokens, token);
+		}
+
+		else if c == '"'  do append(&file.tokens, eat_string(state));
+		else if c == '\'' do append(&file.tokens, eat_char(state));
+
+		else {
+			parsed := false;
+			//           Keywords are already handled in the identifier parser.
+			for i in Token_Kind._AbsoluteCaptureBegin+1 .. Token_Kind._KeywordBegin {
+				name := token_names[i];
+				l := cast(size_t)len(name);
+				if l == 0 do continue;
+				if cursor + l > size_t(len(file.contents)) do continue;
+				if file.contents[cursor .. cursor+l] == name {
+					append(&file.tokens, Token{i, file, line, col, name});
+					cursor += l;
+					col += u32(l);
+					parsed = true;
+					break;
+				}
+			}
+			if !parsed {
+				log.error(file, line, col, "Failed to parse this token");
+
+				fmt.printp("Current char: {}/{}\n", file.contents[cursor], rune(file.contents[cursor]));
+
+				printed_loop += 1;
+				if printed_loop > 4 do return;
+			}
+		}
+
+	} // lex_loop
 	
+}
+
+// DEBUG TODO: Remove me
+printed_loop := 0;
+
+is_identifier_char :: inline (c: byte, allow_numbers: bool) -> bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c == '_') ||
+	       (allow_numbers && (c <= '0' && c >= '9'));
+}
+
+eat_whitespace :: inline (using state: ^Lexer_State) {
+
+	for true {
+		c := file.contents[cursor];
+		if c == '\n' {
+			line += 1;
+			col = 1;
+			cursor += 1;
+		} else if str.is_whitespace(c) {
+			col += 1;
+			cursor += 1;
+		} else do return;
+	}
+}
+
+eat_block_comment :: inline (using state: ^Lexer_State) -> Token {
+
+	col += 2; // for the '/*'
+	cursor += 2;
+
+	token := Token{Token_Kind.Comment, file, line, col, ""};
+	start := cursor;
+	depth := 1;
+	for cursor < length {
+		c := file.contents[cursor];
+		if c == '\n' {
+			line += 1;
+			col = 1;
+			cursor += 1;
+			continue;
+		} else if c == '/' && file.contents[cursor + 1] == '*' do depth += 1;
+		  else if c == '*' && file.contents[cursor + 1] == '/' do depth -= 1;
+		if depth == 0 do break;
+		else {
+			col += 1;
+			cursor += 1;
+		}
+	}
+
+	token.text = file.contents[start .. cursor];
+
+	col += 2; // for the '*/'
+	cursor += 2;
+
+	return token;
+}
+
+eat_line_comment :: inline (using state: ^Lexer_State) -> Token {
+
+	col += 2; // for the '//'
+	cursor += 2;
+
+	token := Token{Token_Kind.Comment, file, line, col, ""};
+	start := cursor;
+	for cursor < length {
+		if file.contents[cursor] == '\n' do break;
+		cursor += 1;
+		// col += 1; // Unnecessary; this is set later.
+	}
+	token.text = file.contents[start .. cursor];
+	line += 1;
+	col = 0;
+	cursor += 1;
+
+	return token;
+}
+
+eat_char :: inline (using state: ^Lexer_State) -> Token {
+
+	token := Token{Token_Kind.Char, file, line, col, ""};
+
+	cursor += 1;
+	col += 1;
+
+	if file.contents[cursor] == '\\' {
+		seq_char := get_unescaped_char(state);
+		str_ptr := new(u8);
+		str_ptr^ = seq_char;
+		append(&file.owned_strings, str_ptr);
+		token.text = transmute(string)raw.String{str_ptr, 1};
+	} else {
+		_, char_size := utf8.decode_rune_from_string(file.contents[cursor..]);
+		token.text = file.contents[cursor..cursor+u64(char_size)];
+		cursor += u64(char_size);
+		col += u32(char_size);
+	}
+
+	if file.contents[cursor] != '\'' do log.error(file, line, col, "Expected a single quote (') to terminate character literal.");
+
+	cursor += 1;
+	col += 1;
+
+	return token;
+}
+
+eat_string :: inline (using state: ^Lexer_State) -> Token {
+
+	token := Token{Token_Kind.String, file, line, col, ""};
+
+	cursor += 1;
+	col += 1;
+
+	dynamic_str := make([dynamic]u8);
+
+	for cursor < length {
+		if file.contents[cursor] == '"' {
+			col += 1;
+			cursor += 1;
+			break;
+		}
+		append(&dynamic_str, get_unescaped_char(state));
+	}
+
+	final_string := cast(string)dynamic_str[..len(dynamic_str)];
+	append(&file.owned_strings, raw.data(final_string));
+	token.text = final_string;
+	return token;
+}
+
+// Used for parsing escape sequences
+// Should only really be used by eat_string and eat_char.
+get_unescaped_char :: inline (using state: ^Lexer_State) -> byte {
+
+	c := file.contents[cursor];
+	col += 1;
+	cursor += 1;
+
+	if c == '\n' {
+		line += 1;
+		col = 1;
+		cursor += 1;
+	}
+
+	if c != '\\' do return c;
+
+	cn := file.contents[cursor];
+	col += 1;
+	cursor += 1;
+	
+	// NOTE(zachary): Here's some escape sequences.
+	//   http://en.cppreference.com/w/cpp/language/escape
+
+	// TODO: This needs to be solved with metaprogramming to keep things dry.
+	if cn == 'n'  do return '\n';
+	if cn == 'r'  do return '\r';
+	if cn == '\\' do return '\\';
+	if cn == '\'' do return '\'';
+	if cn == '"'  do return  '"';
+	if cn == '?'  do return  '?';
+	if cn == 'a'  do return '\a';
+	if cn == 'f'  do return '\f';
+	if cn == 't'  do return '\t';
+	if cn == 'v'  do return '\v';
+
+	// TODO(zachary): Add more escape sequences.
+	//   I'm only doing octal for now because that's
+	//   what the majority of escape codes I encounter are.
+
+	// Octal Sequence
+	if cn >= '0' && cn <= '7' || cn == 'x' || cn == 'X' {
+
+		is_hex := (cn == 'x' || cn == 'X');
+
+		int_val, offset, success := str.to_int(file.contents[cursor..], is_hex ? 16 : 8);
+		
+		cursor += offset;
+		col += u32(offset);
+		if success do return cast(byte)int_val;
+		else {
+			str := fmt.aprintp("Failed to parse {} literal", is_hex ? "hex" : "octal");
+			defer free(str);
+			log.error(file, line, col, str);
+			return '!';
+		}
+	}
+	
+	log.warn(file, line, col, "Unrecognized escape code");
+
+	return c;
 }
