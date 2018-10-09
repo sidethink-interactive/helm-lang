@@ -21,7 +21,8 @@
 Helm is a medium-level programming language that tries to be the sanity point between C and C++. Helm embraces standardization *and* choice, so that
 any Helm code should look similar to any other Helm code whilst allowing programmers to express code in whatever way is appropriate for the task at hand.
 
-Helm is one of those things where you can learn it extremely quickly, but there's always something new you can learn about it.
+Helm is a pretty simple language, but its details allow programmers to implement complex interconnected systems with little to no fuss, unline
+a comparable project in C or C++. Helm is **not** garbage-collected, and never will be. Nor does Helm provide complex ownership syntax like Rust - instead, it makes manual memory management simple, intuitive, and clear. You'll have to remember to `free` things, but you get bare-metal performance and frictionless iteration in place of memory management.
 
 ```go
 import std:io
@@ -46,6 +47,8 @@ main :: () {
 }
 ```
 
+**Helm is heavily inspired by [Odin](https://github.com/odin-lang/Odin).** The Helm compiler is 100% written from scratch, but the design is in some ways based on the Odin compiler's internals. Additionally, the syntax of Helm is based on Odin's and Jai's syntax.
+
 ## Requirements to build and run
 
 - Windows
@@ -69,25 +72,22 @@ main :: () {
 ## Warnings
 
 * This is still highly in development and the language's design is quite volatile.
-* Syntax is not fixed.
 
 ## Roadmap
 
 Not in any particular order and may never be implemented
 
-* Compile Time Execution (CTE)
-	- More metaprogramming madness
-	- Compiler as a library
-	- AST inspection and modification
-* CTE-based build system
-* Replace LLVM backend with my own custom backend
-* Improve SSA design to accommodate for lowering to a "bytecode"
-* SSA optimizations
-* Documentation Generator for "Entities"
-* Multiple Architecture support
-* Debug Information
-	- pdb format too
-* Command Line Tooling
-* Compiler Internals:
-	- Big numbers library
-	- Multithreading for performance increase
+* Compile test program
+* Add very basic class system (constructors and deconstructors)
+* Operator overloading in classes
+* Start writing standard library
+* Output debugging symbols
+* Create custom codegen backend (maybe? Do I need the speed this will provide?)
+* Implement JIT (for metaprogramming)
+* Create nice JIT API
+* Implement #compile directive to function like #foreign_system_library, but with C source code
+* Compatability with C++ function signatures
+* Compatability with ObjC function signatures...?
+* (zachary): Write sample game engine
+* Multithreaded compiler?
+* Code optimizations

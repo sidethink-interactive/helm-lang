@@ -41,7 +41,7 @@ main :: () {
 }
 
 construct_binding :: (e: Entity) -> Entity {
-	
+
 }
 
 @(compile_time("type_checked"))
@@ -75,6 +75,8 @@ Child_Class :: class(Base_Class) {
 	}
 }
 
+// Enforce a size of 16 bytes
+@(struct_size=4*4)
 Struct_Type :: struct {
 	test: i32,
 }

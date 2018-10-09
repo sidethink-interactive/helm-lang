@@ -4,6 +4,7 @@ import "std:str"
 import "std:fs"
 
 import "lexer"
+import "parser"
 using import "types"
 
 
@@ -16,6 +17,22 @@ Build_Kind :: enum {
 Compiler_State :: struct {
 	build_kind: Build_Kind = Build_Kind.DEBUG,
 	main_file_path: string,
+}
+
+VERSION :: "0.1";
+
+// Allocates memory
+version_str :: () -> string {
+	return fmt.aprintp("Helm programming language compiler version {}\n", VERSION);
+}
+
+print_help :: () -> i32 {
+	fmt.printp("{}
+Usage: helm -b/--build BUILD_TYPE main_file_path
+
+ \\_ where BUILD_TYPE is release, debug, or dev and
+    main_file_path is the path to the file that implements main()
+", version_str());
 }
 
 main :: () -> i32 {
@@ -33,7 +50,8 @@ main :: () -> i32 {
 
 		arg = args[i];
 		switch arg {
-			case "-v": fmt.println("Helm programming language compiler version 0.1"); return 0;
+			case "-h", "--help": return print_help();
+			case "-v": fmt.println(version_str()); return 0;
 			case "-b": fallthrough;
 			case "--build":
 				i+=1;

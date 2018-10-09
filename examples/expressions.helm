@@ -1,0 +1,17 @@
+import std:io;
+import std:os/posix;
+import ../log;
+
+// 25 + 20 -> 45
+MY_VALUE = 5**2 + 10 * (1 + 1);
+
+PI_CHAR = 'π'
+
+main :: () {
+
+	contents, success := fs.read_entire_file("./data.txt");
+
+	config := json.parse(success ? contents : "{}");
+
+	io.println(MY_VALUE);
+}

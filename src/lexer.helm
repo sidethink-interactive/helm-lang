@@ -167,7 +167,16 @@ eat_block_comment :: inline (using state: ^Lexer_State) -> Token {
 	col += 2; // for the '/*'
 	cursor += 2;
 
-	token := Token{Token_Kind.Comment, file, line, col, ""};
+	is_doc := file.contents[cursor] == '*';
+
+	token_kind := Token_Kind.Comment;
+	if is_doc {
+		token_kind = Token_Kind.Doc_Comment;
+		col += 1;
+		cursor += 1;
+	}
+
+	token := Token{token_kind, file, line, col, ""};
 	start := cursor;
 	depth := 1;
 	for cursor < length {
@@ -188,6 +197,23 @@ eat_block_comment :: inline (using state: ^Lexer_State) -> Token {
 
 	token.text = file.contents[start .. cursor];
 
+	if is_doc {
+		new_str_lines: [dynamic]string;
+		defer free(new_str_lines);
+		old_str_lines := str.split(token.text, "\n", true);
+		defer free(old_str_lines);
+		reserve(&new_str_lines, old_str_lines);
+
+		for i in 0..len(old_str_lines) {
+			trimmed_str := str.trim(old_str_lines[i]);
+			if trimmed_str[0] == '*' do trimmed_str = str.trim(trimmed_str[1..]);
+			new_str_lines[i] = trimmed_str;
+		}
+		
+		token.text = str.cat('\n', ...new_str_lines);
+		append(&file.owned_strings, token.text);
+	}
+
 	col += 2; // for the '*/'
 	cursor += 2;
 
@@ -199,7 +225,14 @@ eat_line_comment :: inline (using state: ^Lexer_State) -> Token {
 	col += 2; // for the '//'
 	cursor += 2;
 
-	token := Token{Token_Kind.Comment, file, line, col, ""};
+	token_kind := Token_Kind.Comment;
+	if file.contents[cursor] == '/' {
+		token_kind = Token_Kind.Doc_Comment;
+		col += 1;
+		cursor += 1;
+	}
+
+	token := Token{token_kind, file, line, col, ""};
 	start := cursor;
 	for cursor < length {
 		if file.contents[cursor] == '\n' do break;
@@ -213,6 +246,7 @@ eat_line_comment :: inline (using state: ^Lexer_State) -> Token {
 
 	return token;
 }
+
 
 eat_char :: inline (using state: ^Lexer_State) -> Token {
 

@@ -1,0 +1,106 @@
+
+Holder :: struct(T) {
+	my_thing: ^T;
+}
+
+List_Entry :: struct($T = string) {
+
+	alias _Our_Holder :: Holder!List_Entry!T;
+
+	data: T;
+	next, prev: _Our_Holder;
+
+	push :: (item: T) {
+		if next != nil next.my_thing.push(item);
+		else do next = new List_Entry!T{item, _Our_Holder{this}};
+	}
+}
+
+// Inferred polymorphism
+get_area :: (geometry: $T) -> i32 {
+	return get_width(geometry) * get_height(geometry);
+}
+get_area :: (geometry: Circle) -> i32 {
+	return math.pi * math.pow(geometry.radius, 2);
+}
+
+/*
+
+C-style cast
+-------------------                                                                                                                                */
+(float)my_int                                                                                                                                      /*
+-------------------
+
+D-style cast
+-------------------                                                                                                                                */
+cast(float)my_int                                                                                                                                      /*
+-------------------
+
+Python-style cast
+-------------------                                                                                                                                */
+my_int as float                                                                                                                                      /*
+-------------------
+
+Odin-style cast (and maybe others?)
+-------------------                                                                                                                                */
+float(my_int)                                                                                                                                      /*
+-------------------
+
+
+GetDistanceBetweenPoints(x, y, parent.pos.x + (4 + object.pos.x as float) as float, object.pos.y as float);
+
+
+*/
+
+Base :: class {
+
+}
+Inherited :: class <- Base {
+
+}
+
+
+Shape :: class(Storage_Type) {
+	// Just for a consistent interface
+	Data_Type :: #alias Storage_Type;
+}
+Rectangle :: class(Storage_Type) <- Shape!Storage_Type {
+	width, height: Storage_Type;
+}
+Square :: class(Storage_Type) <- Shape!Storage_Type {
+	size: Storage_Type;
+}
+Circle :: class(Storage_Type) <- Shape!Storage_Type {
+	radius: Storage_Type;
+}
+
+get_width  :: (r: Rectangle($T)) -> $T do return r.width;
+get_height :: (r: Rectangle($T)) -> $T do return r.height;
+
+get_width  :: (r: Square($T)) -> $T do return r.size;
+get_height :: (r: Square($T)) -> $T do return r.size;
+
+get_area :: (geometry: $Type <- Shape) -> $Type.Data_Type {
+	when $Type <- Circle {
+		return math.PI * math.pow(geometry.radius, 2);
+	} else {
+		return get_width(geometry) * get_height(geometry);
+	}
+}
+
+main :: (args: []string) -> i32 {
+
+	entry: List_Entry;
+
+	h := Holder!List_Entry {&entry};
+
+
+
+	r := Rectangle!float{10, 5};
+	s := Square!float{10};
+	c := Circle!float{10};
+
+	get_area!Rectangle(r);
+	get_area!Square(s);
+	get_area!Circle(c);
+}

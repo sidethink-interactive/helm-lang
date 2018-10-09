@@ -1,2 +1,2 @@
 #!/bin/sh
-./build.sh && ./helm --build development examples/dev.helm
+./build.sh && ./helm --build development examples/expressions.helm

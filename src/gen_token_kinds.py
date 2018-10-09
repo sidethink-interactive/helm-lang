@@ -4,6 +4,8 @@
 
 token_kinds = [
 
+	["Invalid",                            "ERROR: Invalid token."],
+
 	# NOTE(zachary): The entries like _LiteralBegin are used
 	# so that we can compare a token type with a
 	# start and end range to see what the token _does_.
@@ -13,91 +15,96 @@ token_kinds = [
 	# unless metaprogramming scripts
 	# touch them.
 	["Comment",                            "Comment"],
+	["Doc_Comment",                        "Documentation Comment"],
 	# Simple things like  names, etc.
-	["_LiteralBegin",                      ""],
+	["_Literal_Begin",                     ""],
 	["Identifier",                         "Identifier"],
 	# Literal types
 	["Integer",                            "Integer"],
 	["Float",                              "Float"],
 	["Char",                               "Char"],
 	["String",                             "String"],
-	["_LiteralEnd",                        ""],
+	["_Literal_End",                       ""],
 	# From here on out, the tokens should be
 	# literal representations of what they're
 	# supposed to be.
-	["_AbsoluteCaptureBegin",              ""],
-	["_OperatorBegin",                     ""],
+	["_Absolute_Capture_Begin",            ""],
+	["_Operator_Begin",                    ""],
 	# Assignment operators
-	["_AssignOpBegin",                     ""],
-	["AddEq",                              "+="],
-	["SubEq",                              "-="],
-	["MulEq",                              "*="],
-	["DivEq",                              "/="],
-	["ModEq",                              "%="],
-	["AndEq",                              "&="],
-	["OrEq",                               "|="],
-	["XorEq",                              "~="],
-	["AndNotEq",                           "&~="],
-	["ShiftLeftEq",                        "<<="],
-	["ShiftRightEq",                       ">>="],
-	["_AssignOpEnd",                       ""],
+	["_Assign_Op_Begin",                   ""],
+	["Add_Eq",                             "+="],
+	["Sub_Eq",                             "-="],
+	["Exp_Eq",                             "**="],
+	["Mul_Eq",                             "*="],
+	["Div_Eq",                             "/="],
+	["Mod_Eq",                             "%="],
+	["And_Eq",                             "&="],
+	["Or_Eq",                              "|="],
+	["Xor_Eq",                             "~="],
+	["And_Not_Eq",                         "&~="],
+	#["ShiftLeftEq",                        "<<="],
+	#["ShiftRightEq",                       ">>="],
+	["_Assign_Op_End",                     ""],
 	# These have to be here so that they're
 	# over the Lt and Gt operators
-	["ShiftLeft",                          "<<"],
-	["ShiftRight",                         ">>"],
+	["Shift_Left",                         "<<"],
+	["Shift_Right",                        ">>"],
 	# Comparison operators
-	["_ComparisonBegin",                     ""],
-	["CmpAnd",                             "&&"],
-	["CmpOr",                              "||"],
-	["CmpEq",                              "=="],
-	["CmpNotEq",                           "!="],
-	["CmpLtEq",                            "<="],
-	["CmpLt",                              "<"],
-	["CmpGtEq",                            ">="],
-	["CmpGt",                              ">"],
-	["_ComparisonEnd",                     ""],
+	["_Comparison_Begin",                  ""],
+	["Cmp_And",                            "&&"],
+	["Cmp_Or",                             "||"],
+	["Cmp_Eq",                             "=="],
+	["Cmp_Not_Eq",                         "!="],
+	["Cmp_Lt_Eq",                          "<="],
+	["Cmp_Gt_Eq",                          ">="],
+	["Cmp_Lt",                             "<"],
+	["Cmp_Gt",                             ">"],
+	["_Comparison_End",                    ""],
 	# Other Operators
 	["Increment",                          "++"],
 	["Decrement",                          "--"],
 	["Equals",                             "="],
 	["Not",                                "!"],
 	["At",                                 "@"],
-	["Arrow",                              "->"],
-	["AndNot",                             "&~"],
+	["Right_Arrow",                        "->"],
+	["Left_Arrow",                         "<-"],
+	["And_Not",                            "&~"],
 	["And",                                "&"],
 	["Or",                                 "|"],
 	["Xor",                                "~"],
 	["Caret",                              "^"],
 	["Question",                           "?"],
 	# Arithmetic operators
-	["_ArithmeticBegin",                   ""],
+	["_Arithmetic_Begin",                  ""],
 	["Sub",                                "-"],
 	["Add",                                "+"],
+	["Exp",                                "**"],
 	["Mul",                                "*"],
 	["Div",                                "/"],
 	["Mod",                                "%"],
-	["_ArithmeticEnd",                     ""],
+	["_Arithmetic_End",                    ""],
 	# Simple symbols
-	["OpenParen",                          "("],
-	["CloseParen",                         ")"],
-	["OpenBracket",                        "["],
-	["CloseBracket",                       "]"],
-	["OpenBrace",                          "{"],
-	["CloseBrace",                         "}"],
+	["Open_Paren",                         "("],
+	["Close_Paren",                        ")"],
+	["Open_Bracket",                       "["],
+	["Close_Bracket",                      "]"],
+	["Open_Brace",                         "{"],
+	["Close_Brace",                        "}"],
 	["Colon",                              ":"],
 	["Semicolon",                          ";"],
-	["Ellipsis",                           "..."],
+	["Open_Ellipsis",                      "..."],
+	["Half_Open_Ellipsis",                 ".."],
 	["Period",                             "."],
 	["Comma",                              ","],
-	["NewLine",                            "\\n"],
-	["_OperatorEnd",                       ""],
+	#["New_Line",                           "\\n"],
+	["_Operator_End",                      ""],
 	# Keywords
 
 	# A word of caution: Be careful to place
 	# any variations on a token at the top.
 	# For example, "foreach" comes before "for"
 
-	["_KeywordBegin",                      ""],
+	["_Keyword_Begin",                     ""],
 	["Alias",                              "alias"],
 	["When",                               "when"],
 	["If",                                 "if"],
@@ -105,30 +112,31 @@ token_kinds = [
 	["For",                                "for"],
 	["In",                                 "in"],
 	["Switch",                             "switch"],
+	["Match",                              "match"],
 	["Case",                               "case"],
-	["Default",                            "default"],
+	#["Default",                            "default"],
 	["Break",                              "break"],
 	["Continue",                           "continue"],
 	["Fallthrough",                        "fallthrough"],
 	["Defer",                              "defer"],
 	["Return",                             "return"],
-	["Sig",                                "sig"],
+	#["Sig",                                "sig"],
 	["Struct",                             "struct"],
 	["Class",                              "class"],
 	["Union",                              "union"],
 	["Enum",                               "enum"],
 	["Cast",                               "cast"],
-	["Load",                               "load"],
+	#["Load",                               "load"],
 	["Import",                             "import"],
-	["HashIf",                             "#if"],
-	["HashElse",                           "#else"],
-	["HashType",                           "#type"],
-	["HashGlobal",                         "#global"],
-	["HashRaw",                            "#raw"],
-	["HashForeign",                        "#foreign"],
-	["_KeywordEnd",                        ""],
-	["_AbsoluteCaptureEnd",                ""],
-	["Count",                              ""]
+	["Foreign_Library",                    "foreign_lib"],
+	#["Hash_If",                            "#if"],
+	#["Hash_Else",                          "#else"],
+	#["Hash_Type",                          "#type"],
+	#["Hash_Global",                        "#global"],
+	#["Hash_Raw",                           "#raw"],
+	#["Hash_Foreign",                       "#foreign"],
+	["_Keyword_End",                       ""],
+	["_Absolute_Capture_End",              ""]
 ]
 
 # The different "zones" that demarcate different forms of tokens.
@@ -159,7 +167,7 @@ for pair in token_kinds:
 	enum += '\n\t' + pair[0] + ','
 	names += '\n\t\"' + pair[1] + '\",'
 
-source_code = '// This file is automatically generated by token_kinds.py every build.\n\n' + enum + '\n}\n\n' + names + '\n};\n\n'
+source_code = '// This file is automatically generated by gen_token_kinds.py every build.\n\n' + enum + '\n}\n\n' + names + '\n};\n\n'
 
 # Create src/gen
 
@@ -176,7 +184,7 @@ out_file.close()
 
 # Generate comparison functions
 
-source_code = '// This file is automatically generated by token_kinds.py every build.\n\nusing import "token_kinds";\nusing import "../types.helm"\n\n'
+source_code = '// This file is automatically generated by gen_token_kinds.py every build.\n\nusing import "token_kinds";\nusing import "../types.helm"\n\n'
 
 for zone in token_zones:
 	source_code += 'is_token_' + zone[1] + '_a :: inline(t: Token_Kind) -> bool do return t > Token_Kind._' + zone[0] + 'Begin && t < Token_Kind._' + zone[0] + 'End;\n'

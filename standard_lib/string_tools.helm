@@ -1,5 +1,6 @@
 import "std:mem"
 import "std:raw"
+import "std:utf8"
 
 new_string :: proc(s: string) -> string {
 	c := make([]byte, len(s)+1);
@@ -31,23 +32,53 @@ contains_rune :: proc(s: string, r: rune) -> int {
 	return -1;
 }
 
+// Allocates.
+cat_no_sep :: inline (strs: ...string) -> string {
+	return cat_sep_rune(0, ...strs);
+}
 
-cat :: proc(strs: ...string) -> string {
+// Allocates.
+cat_sep_rune :: (sep: rune, strs: ...string) -> string {
+	
 	total := 0;
 	for s in strs do total += len(s);
+	
+	encoded_rune_bytes: [4]u8 = ---;
+	encoded_rune_bytes_ptr: rawptr = ---;
+	rune_size: int = ---;
+
+	if sep != 0 {
+		encoded_rune_bytes, rune_size = utf8.encode_rune(sep);
+		total += (len(strs) - 1) * rune_size;
+		encoded_rune_bytes_ptr = &encoded_rune_bytes[0];
+	}
+	
+
 	out := make([]u8, total);
-	i := 0;
-	for s in strs {
-		for j in 0..len(s) {
-			out[i] = s[j];
-			i+=1;
+	out_ptr := raw.data(out);
+	
+	final_str_i := 0;
+
+	s: string = ---;
+	s_len: int = ---;
+	for i in 0..len(strs) {
+		s = strs[i];
+		s_len = len(s);
+		// TODO: Break this out into two separate loops so the conditional isn't run every time.
+		if sep != 0 && i != 0 {
+			mem.copy(out_ptr + final_str_i, encoded_rune_bytes_ptr, rune_size);
+			final_str_i += rune_size;
 		}
+		mem.copy(out_ptr + final_str_i, raw.data(s), s_len);
+		final_str_i += s_len;
 	}
 	return string(out);
 }
+// Allocates.
+cat :: proc[cat_no_sep, cat_sep_rune];
 
 // Does the first string start with the second one?
-starts_with :: inline proc(haystack, needle: string) -> bool {
+starts_with :: inline (haystack, needle: string) -> bool {
 	if len(haystack) < len(needle) do return false;
 	for i in 0..len(needle) do if needle[i] != haystack[i] do return false;
 	return true;
@@ -92,7 +123,7 @@ trim :: proc(s: string) -> string {
 // Splits the first string by the second.
 // Note that "a,,b" split by "," will give ["a","b"] not ["a","","b"]
 // unless allow_blank is specified.
-split :: proc(haystack, needle: string, allow_blank := false) -> [dynamic]string {
+split :: (haystack, needle: string, allow_blank := false) -> [dynamic]string {
 
 	assert(len(haystack)>0);
 	assert(len(haystack)>len(needle));
@@ -125,6 +156,8 @@ split :: proc(haystack, needle: string, allow_blank := false) -> [dynamic]string
 
 	return strs;
 }
+
+join :: cat;
 
 is_lower_latin :: inline proc(char: u8) -> bool do return char >= 'a' && char <= 'z';
 is_upper_latin :: inline proc(char: u8) -> bool do return char >= 'A' && char <= 'Z';
